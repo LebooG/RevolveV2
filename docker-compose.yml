@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # ─── PostgreSQL Database ──────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: revolve-rent-db
+    environment:
+      POSTGRES_DB: revolve_rent
+      POSTGRES_USER: revolve
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-revolve_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revolve -d revolve_rent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis (for Bull queues & caching) ────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: revolve-rent-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend API ──────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: revolve-rent-api
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: revolve_rent
+      DB_USER: revolve
+      DB_PASSWORD: ${DB_PASSWORD:-revolve_secret}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      MPESA_CONSUMER_KEY: ${MPESA_CONSUMER_KEY}
+      MPESA_CONSUMER_SECRET: ${MPESA_CONSUMER_SECRET}
+      MPESA_PASSKEY: ${MPESA_PASSKEY}
+      MPESA_SHORTCODE: ${MPESA_SHORTCODE:-174379}
+      MPESA_BASE_URL: ${MPESA_BASE_URL:-https://sandbox.safaricom.co.ke}
+      MPESA_CALLBACK_URL: ${MPESA_CALLBACK_URL}
+      MPESA_TIMEOUT_URL: ${MPESA_TIMEOUT_URL}
+      HOSTPINNACLE_USER_ID: ${HOSTPINNACLE_USER_ID}
+      HOSTPINNACLE_PASSWORD: ${HOSTPINNACLE_PASSWORD}
+      HOSTPINNACLE_SENDER_ID: ${HOSTPINNACLE_SENDER_ID:-REVOLVERENT}
+      HOSTPINNACLE_BASE_URL: ${HOSTPINNACLE_BASE_URL:-https://smsportal.hostpinnacle.co.ke}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:

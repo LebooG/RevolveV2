@@ -1,0 +1,46 @@
+# Render Blueprint — deploy with "New > Blueprint" at dashboard.render.com
+# Points to the /backend directory of the repo
+
+services:
+  - type: web
+    name: revolve-rent-api
+    runtime: node
+    region: frankfurt  # closest to Kenya
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false  # you'll paste your Supabase connection string here
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a random secret
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_SHORTCODE
+        value: "174379"
+      - key: MPESA_BASE_URL
+        value: https://sandbox.safaricom.co.ke
+      - key: MPESA_CALLBACK_URL
+        sync: false  # will be https://revolve-rent-api.onrender.com/api/v1/payments/mpesa/callback
+      - key: MPESA_TIMEOUT_URL
+        sync: false
+      - key: HOSTPINNACLE_USER_ID
+        sync: false
+      - key: HOSTPINNACLE_PASSWORD
+        sync: false
+      - key: HOSTPINNACLE_SENDER_ID
+        value: REVOLVERENT
+      - key: HOSTPINNACLE_BASE_URL
+        value: https://smsportal.hostpinnacle.co.ke
+      - key: PLATFORM_FEE_PERCENT
+        value: "2"
